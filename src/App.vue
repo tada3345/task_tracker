@@ -38,42 +38,57 @@ export default {
     toggleAddTask() {
       this.showAddTask = !this.showAddTask;
     },
-    addTask(task) {
-      console.log(task);
-      this.tasks = [...this.tasks, task];
+    async addTask(task) {
+      const res = await fetch('api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json',
+        },
+        body: JSON.stringify(task),
+      });
+      const data = await res.json();
+      // console.log(task);
+      this.tasks = [...this.tasks, data];
     },
-    deleteTask(id) {
+    async deleteTask(id) {
       if (confirm('本当に削除しますか')) {
-        this.tasks = this.tasks.filter((task) => task.id !== id);
+        const res = await fetch(`api/tasks/${id}`, {
+          method: 'DELETE',
+        });
+        res.status === 200
+          ? (this.tasks = this.tasks.filter((task) => task.id !== id))
+          : alert('エラーが発生しました。');
       }
     },
-    toggleReminder(id) {
+    async toggleReminder(id) {
+      const tasksToToggle = await this.fetchTask(id);
+      const updTask = { ...tasksToToggle, reminder: !tasksToToggle.reminder };
+      const res = await fetch(`api/tasks/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updTask),
+      });
+
+      const data = await res.json();
       this.tasks = this.tasks.map((task) =>
-        task.id === id ? { ...task, reminder: !task.reminder } : task
+        task.id === id ? { ...task, reminder: data.reminder } : task
       );
     },
+    async fetchTasks() {
+      const res = await fetch('api/tasks');
+      const data = await res.json();
+      return data;
+    },
+    async fetchTask(id) {
+      const res = await fetch(`api/tasks/${id}`);
+      const data = await res.json();
+      return data;
+    },
   },
-  created() {
-    this.tasks = [
-      {
-        id: 1,
-        text: '病院',
-        day: '3月1日 13:00',
-        reminder: true,
-      },
-      {
-        id: 2,
-        text: '歯医者',
-        day: '3月3日 15:00',
-        reminder: true,
-      },
-      {
-        id: 3,
-        text: '美容院',
-        day: '3月4日 16:00',
-        reminder: false,
-      },
-    ];
+  async created() {
+    this.tasks = await this.fetchTasks();
   },
 };
 </script>
